@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>$TTWO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;border:0;border-radius:0;background:none;box-shadow:none}
+:root{
+  --bg:#0a0a0a;
+  --lime:#D4F000;
+  --gold:#FFC300;
+  --fade:.34s;
+}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--lime)}
+body{
+  font-family:'Anton',Impact,'Arial Narrow',sans-serif;
+  font-weight:400;
+  text-transform:uppercase;
+  letter-spacing:-.03em;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font:inherit;letter-spacing:inherit;color:inherit;text-transform:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;display:block}
+a{color:inherit;text-decoration:none}
+img,video{display:block;max-width:none}
+.num{font-variant-numeric:tabular-nums lining-nums;font-feature-settings:"tnum" 1,"lnum" 1}
+
+/* ---------- layers ---------- */
+.scr{position:fixed;inset:0;overflow:hidden}
+
+/* ---------- screen 3 : the loop (bottom layer) ---------- */
+#loop{z-index:1;opacity:0;pointer-events:none;transition:opacity var(--fade) linear}
+body.loop #loop{opacity:1;pointer-events:auto}
+#shark{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#hero{
+  position:absolute;left:0;right:0;top:50%;transform:translateY(-52%);
+  text-align:center;white-space:nowrap;line-height:.92;
+  font-size:clamp(1.5rem,var(--hero-fs,12.4vw),34vh);
+  color:var(--lime);
+}
+#bottom{position:absolute;left:0;right:0;bottom:0;padding-bottom:env(safe-area-inset-bottom)}
+#stats{display:grid;grid-template-columns:repeat(4,1fr);align-items:end;padding:0 3vw 9px;gap:2vw}
+.st{text-align:left;line-height:1}
+.st .v{display:block;font-size:clamp(14px,4.1vw,26px);line-height:1;color:var(--lime)}
+.st .k{display:block;margin-top:4px;font-size:clamp(8px,2vw,10px);letter-spacing:.16em;opacity:.5}
+#rail{position:relative;width:100%;height:1px;background:rgba(212,240,0,.16)}
+#fill{position:absolute;left:0;top:0;height:100%;width:0;background:var(--lime);transition:width .8s linear}
+#ui{
+  position:absolute;left:0;right:0;
+  bottom:calc(env(safe-area-inset-bottom) + clamp(52px,13vw,74px));
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 3vw;user-select:none;
+}
+#tick{position:absolute;top:calc(env(safe-area-inset-top) + 12px);left:3vw;font-size:11px;letter-spacing:.18em;opacity:.5}
+#memlink{font-size:11px;letter-spacing:.18em;opacity:.62}
+#snd{width:34px;height:34px;display:grid;place-items:center;opacity:.62;margin-right:-6px}
+#snd .on{display:none}
+body.snd #snd .on{display:block}
+body.snd #snd .off{display:none}
+#fjet{position:absolute;top:34%;left:0;width:min(64vw,820px);transform:translateX(-160vw);pointer-events:none;display:none}
+body.fly #fjet{display:block;animation:fly 2.4s linear 1 both}
+@keyframes fly{from{transform:translateX(-160vw)}to{transform:translateX(160vw)}}
+body.bought #fill{background:var(--gold);width:100%!important}
+body.bought #rail{background:var(--gold)}
+
+/* ---------- screen 2 : the count ---------- */
+#count{z-index:2;background:var(--bg);display:none;opacity:1;transition:opacity var(--fade) linear}
+#count.on{display:block}
+body.loop #count{opacity:0}
+#pump{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%)}
+#counter{
+  width:var(--count-w,94vw);text-align:right;white-space:nowrap;line-height:.9;
+  font-size:clamp(1.5rem,var(--count-fs,18vw),55vh);
+  color:var(--lime);
+}
+#cjet{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:100vw;display:none}
+
+/* ---------- screen 1 : the gate ---------- */
+#gate{z-index:3;background:var(--bg);display:grid;place-content:center;justify-items:center}
+#gate.off{display:none}
+#enter{font-size:clamp(3.4rem,17vw,15rem);line-height:.9;color:var(--lime)}
+#skip{margin-top:clamp(18px,5vw,30px);font-size:11px;letter-spacing:.2em;opacity:.42}
+
+/* ---------- gallery ---------- */
+#gal{z-index:4;background:var(--bg);display:none;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#gal.on{display:block}
+#grid{display:grid;grid-template-columns:1fr;gap:2px;padding-bottom:64px}
+#grid img{width:100%;height:auto;aspect-ratio:1/1;object-fit:cover}
+@media (min-width:760px){#grid{grid-template-columns:repeat(3,1fr)}}
+#back{position:fixed;left:3vw;bottom:calc(env(safe-area-inset-bottom) + 16px);font-size:11px;letter-spacing:.2em;background:var(--bg);padding:8px 10px;color:var(--lime)}
+
+#gauge{position:absolute;left:-9999px;top:-9999px;white-space:pre;font-size:200px;visibility:hidden}
+</style>
+</head>
+<body>
+
+<div class="scr" id="loop">
+  <video id="shark" src="shark.mp4" autoplay loop muted playsinline preload="auto" disablepictureinpicture></video>
+  <img id="fjet" src="jet.png" alt="">
+  <div id="tick">$TTWO</div>
+  <div id="hero">$99.99 IS ONE PLANE</div>
+  <div id="ui">
+    <a id="memlink" href="#memes">MEMES</a>
+    <button id="snd">
+      <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square">
+        <path d="M3.5 9.2h3.6L12 5.2v13.6l-4.9-4H3.5z" fill="currentColor" stroke="none"/>
+        <g class="off"><path d="M16.2 9.6l5 5M21.2 9.6l-5 5"/></g>
+        <g class="on"><path d="M15.8 8.6a4.8 4.8 0 0 1 0 6.8"/><path d="M18.6 6.2a8.2 8.2 0 0 1 0 11.6"/></g>
+      </svg>
+    </button>
+  </div>
+  <div id="bottom">
+    <div id="stats">
+      <div class="st"><span class="v num" id="v-mcap">0</span><span class="k">MCAP</span></div>
+      <div class="st"><span class="v num" id="v-liq">0</span><span class="k">LIQ</span></div>
+      <div class="st"><span class="v num" id="v-vol">0</span><span class="k">VOL</span></div>
+      <div class="st"><span class="v num" id="v-holders">0</span><span class="k">HOLDERS</span></div>
+    </div>
+    <div id="rail"><div id="fill"></div></div>
+  </div>
+</div>
+
+<div class="scr" id="count">
+  <div id="pump">
+    <div id="counter" class="num">0</div>
+    <img id="cjet" src="jet.png" alt="">
+  </div>
+</div>
+
+<div class="scr" id="gate">
+  <button id="enter">ENTER</button>
+  <button id="skip">SKIP</button>
+</div>
+
+<div class="scr" id="gal"><div id="grid"></div><a id="back" href="#">BACK</a></div>
+
+<span id="gauge" class="num" aria-hidden="true"></span>
+
+<script>
+const CFG = {
+  api: "",                 // I paste a stats endpoint here
+  target: 10000000,        // do not change
+  mock: { mcap: 184000, liq: 42000, vol: 96000, holders: 311 }
+};
+
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var gate = $('gate'), count = $('count'), counter = $('counter'), cjet = $('cjet');
+  var gal = $('gal'), grid = $('grid'), gauge = $('gauge');
+  var hero = $('hero'), vid = $('shark'), fill = $('fill');
+  var out = { mcap: $('v-mcap'), liq: $('v-liq'), vol: $('v-vol'), holders: $('v-holders') };
+
+  var nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  var fmt = function (n) { return nf.format(Math.max(0, Math.round(n))); };
+
+  var phase = 'gate';       // gate | count | loop
+  var sound = false;
+  var bought = false;
+  var stats = { mcap: CFG.mock.mcap, liq: CFG.mock.liq, vol: CFG.mock.vol, holders: CFG.mock.holders };
+
+  /* ---------- type fitting: hero + count share one numeral scale ---------- */
+  function fitPx(text, targetW) {
+    gauge.textContent = text;
+    var w = gauge.getBoundingClientRect().width;
+    return w > 0 ? (targetW * 200 / w) : 0;
+  }
+  function layout() {
+    var vw = document.documentElement.clientWidth || window.innerWidth;
+    var cw = vw * 0.94;
+    var cfs = fitPx('10,000,000', cw);
+    var hfs = fitPx(hero.textContent, vw * 0.96);
+    var rs = document.documentElement.style;
+    if (cfs) { rs.setProperty('--count-fs', cfs + 'px'); rs.setProperty('--count-w', cw + 'px'); }
+    if (hfs) rs.setProperty('--hero-fs', hfs + 'px');
+  }
+  window.addEventListener('resize', layout);
+  window.addEventListener('orientationchange', layout);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+  layout();
+
+  /* ---------- fuel-pump audio ---------- */
+  var ac = null;
+  function audioUp() {
+    try {
+      var C = window.AudioContext || window.webkitAudioContext;
+      if (!C) return;
+      if (!ac) ac = new C();
+      if (ac.state === 'suspended') ac.resume();
+    } catch (e) { ac = null; }
+  }
+  function blip(freqA, freqB, peak, dur, type) {
+    if (!ac) return;
+    try {
+      var t = ac.currentTime;
+      var o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+      o.type = type;
+      o.frequency.setValueAtTime(freqA, t);
+      o.frequency.exponentialRampToValueAtTime(freqB, t + dur * 0.8);
+      f.type = 'bandpass'; f.frequency.value = freqA * 0.8; f.Q.value = 1.1;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(f); f.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
+  }
+  var tick = function () { blip(1900, 620, 0.22, 0.045, 'square'); };
+  var clunk = function () { blip(220, 60, 0.4, 0.13, 'triangle'); };
+
+  /* ---------- screen 2 ---------- */
+  var DUR = 1800, TICKS = 48;
+  function runCount() {
+    phase = 'count';
+    count.classList.add('on');
+    counter.textContent = fmt(0);
+    var t0 = performance.now(), step = CFG.target / TICKS, next = step, last = 0;
+    function frame(now) {
+      var p = Math.min(1, (now - t0) / DUR);
+      var v = Math.round((1 - Math.pow(1 - p, 3)) * CFG.target);
+      counter.textContent = fmt(v);
+      while (v >= next && next <= CFG.target) {
+        next += step;
+        if (now - last > 44) { tick(); last = now; }
+      }
+      if (p < 1) { requestAnimationFrame(frame); return; }
+      counter.textContent = fmt(CFG.target);
+      clunk();
+      setTimeout(function () {          // 700ms dead still, dead silent
+        cjet.style.display = 'block';   // engines off
+        setTimeout(function () { toLoop(true); }, 500);
+      }, 700);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- screen 3 ---------- */
+  function paintSound() {
+    document.body.classList.toggle('snd', sound);
+    vid.muted = !sound;
+    var pr = vid.play();
+    if (pr && pr.catch) pr.catch(function () {});
+  }
+  function toLoop(withSound) {
+    phase = 'loop';
+    gate.classList.add('off');
+    document.body.classList.add('loop');
+    sound = !!withSound;
+    paintSound();
+    setTimeout(function () { count.classList.remove('on'); }, 400);
+    render();
+  }
+
+  function render() {
+    out.mcap.textContent = fmt(stats.mcap);
+    out.liq.textContent = fmt(stats.liq);
+    out.vol.textContent = fmt(stats.vol);
+    out.holders.textContent = fmt(stats.holders);
+    var r = Math.max(0, Math.min(1, stats.mcap / CFG.target));
+    fill.style.width = (r * 100) + '%';
+    if (r >= 1 && !bought) {
+      bought = true;
+      document.body.classList.add('bought');
+      hero.textContent = 'BOUGHT THE PLANE';
+      layout();
+      document.body.classList.remove('fly');
+      void document.body.offsetWidth;
+      document.body.classList.add('fly');
+    }
+  }
+
+  /* ---------- stats ---------- */
+  function num(x) {
+    if (typeof x === 'number' && isFinite(x)) return x;
+    if (typeof x === 'string') {
+      var n = parseFloat(x.replace(/[^0-9.\-]/g, ''));
+      if (isFinite(n)) return n;
+    }
+    return null;
+  }
+  function pull() {
+    if (!CFG.api) return;
+    var done = false;
+    var kill = setTimeout(function () { done = true; }, 8000);
+    fetch(CFG.api, { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw 0;
+      return r.json();
+    }).then(function (j) {
+      clearTimeout(kill);
+      if (done || !j) return;
+      var d = j.data || j.stats || j.pair || j;
+      var pick = function (keys) {
+        for (var i = 0; i < keys.length; i++) {
+          var v = num(d[keys[i]]);
+          if (v !== null) return v;
+        }
+        return null;
+      };
+      var got = {
+        mcap: pick(['mcap', 'marketCap', 'market_cap', 'marketcap', 'fdv']),
+        liq: pick(['liq', 'liquidity', 'liquidityUsd', 'liquidity_usd']),
+        vol: pick(['vol', 'volume', 'volume24h', 'volume_24h', 'v24hUSD']),
+        holders: pick(['holders', 'holderCount', 'holder_count'])
+      };
+      for (var k in got) if (got[k] !== null) stats[k] = got[k];
+      render();
+    }).catch(function () { clearTimeout(kill); });
+  }
+  render();
+  if (CFG.api) { pull(); setInterval(pull, 20000); }
+
+  /* ---------- gallery ---------- */
+  var built = false;
+  function buildGrid() {
+    if (built) return;
+    built = true;
+    var f = document.createDocumentFragment();
+    for (var i = 1; i <= 12; i++) {
+      var im = document.createElement('img');
+      im.src = 'memes/' + i + '.jpg';
+      im.alt = '';
+      im.loading = 'lazy';
+      im.decoding = 'async';
+      f.appendChild(im);
+    }
+    grid.appendChild(f);
+  }
+  function route() {
+    if (location.hash === '#memes') {
+      buildGrid();
+      if (phase === 'gate') { phase = 'loop'; gate.classList.add('off'); document.body.classList.add('loop'); }
+      gal.classList.add('on');
+      gal.scrollTop = 0;
+    } else {
+      gal.classList.remove('on');
+      if (phase === 'gate' && location.hash) { /* stray hash: gate stays */ }
+    }
+  }
+  window.addEventListener('hashchange', route);
+
+  /* ---------- wiring ---------- */
+  $('enter').addEventListener('click', function () {
+    if (phase !== 'gate') return;
+    audioUp();
+    vid.muted = true;
+    var pr = vid.play(); if (pr && pr.catch) pr.catch(function () {});
+    gate.classList.add('off');
+    runCount();
+  });
+  $('skip').addEventListener('click', function () {
+    if (phase !== 'gate') return;
+    toLoop(false);
+  });
+  $('snd').addEventListener('click', function () {
+    audioUp();
+    sound = !sound;
+    paintSound();
+  });
+  $('back').addEventListener('click', function (e) {
+    e.preventDefault();
+    if (location.hash) location.hash = '';
+    else route();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && phase === 'loop') { var pr = vid.play(); if (pr && pr.catch) pr.catch(function () {}); }
+  });
+
+  route();
+})();
+</script>
+</body>
+</html>
